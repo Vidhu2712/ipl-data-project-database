@@ -1,0 +1,58 @@
+CREATE DATABASE iplsqlproject
+    WITH
+    OWNER = postgres
+    ENCODING = 'UTF8'
+    LC_COLLATE = 'C'
+    LC_CTYPE = 'C'
+    LOCALE_PROVIDER = 'libc'
+    TABLESPACE = pg_default
+    CONNECTION LIMIT = -1
+    IS_TEMPLATE = False;
+select * from matches;
+select * from deliveries;	
+
+-- Q1 Number of matches played per year
+SELECT season, COUNT(id) AS matches_played
+FROM matches
+GROUP BY season
+ORDER BY season;
+
+-- Q2 Number of matches won by each team over all the years
+SELECT winner AS team, COUNT(id) AS matches_won
+FROM matches
+WHERE winner IS NOT NULL
+GROUP BY winner
+ORDER BY matches_won DESC;
+
+-- Q3 Extra runs conceded by each team in the year 2016
+SELECT d.bowling_team, SUM(d.extra_runs) AS total_extra_runs
+FROM deliveries d
+JOIN matches m ON d.match_id = m.id
+WHERE m.season = 2016
+GROUP BY d.bowling_team
+ORDER BY total_extra_runs DESC;
+
+-- Q4 For the year 2015, top economical bowlers:
+WITH bowler_stats AS (
+    SELECT 
+        d.bowler,
+        SUM(d.total_runs - d.extra_runs) AS runs_conceded,
+        COUNT(CASE WHEN d.extra_runs = 0 THEN 1 END) AS balls_bowled  -- Only valid deliveries are counted
+    FROM deliveries d
+    JOIN matches m ON d.match_id = m.id
+    WHERE m.season = 2015
+    GROUP BY d.bowler
+),
+economy_rates AS (
+    SELECT 
+        bowler,
+        (runs_conceded * 6.0 / balls_bowled) AS economy_rate
+    FROM bowler_stats
+)
+SELECT 
+    ROW_NUMBER() OVER (ORDER BY economy_rate ASC) AS ranking,
+    bowler,
+    ROUND(economy_rate, 10) AS economy_rate
+FROM economy_rates
+ORDER BY economy_rate ASC
+LIMIT 10;
