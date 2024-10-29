@@ -1,2 +1,2 @@
-# ipl-data-project-database
+# ipl-data-project-sql
 sql queries for ipl data project. 
